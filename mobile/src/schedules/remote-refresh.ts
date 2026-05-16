@@ -53,6 +53,12 @@ export interface ActiveScheduleInfo {
   origin: "bundled" | "cached" | "remote";
   /** När appen senast försökte hämta en uppdatering (ms epoch). */
   lastFetchAttempt: number | null;
+  /** Resultat av senaste fetch — för diagnostik. */
+  lastFetchStatus: "ok" | "error" | "never" | "pending";
+  /** Felmeddelande från senaste fetch om den misslyckades. */
+  lastFetchError: string | null;
+  /** Version i cache:ad fil, om någon. */
+  cachedVersion: string | null;
 }
 
 /**
@@ -67,9 +73,44 @@ let _active: ActiveScheduleInfo = {
   source: BUNDLED_SOURCE,
   origin: "bundled",
   lastFetchAttempt: null,
+  lastFetchStatus: "never",
+  lastFetchError: null,
+  cachedVersion: null,
 };
 
 export function getActiveScheduleInfo(): ActiveScheduleInfo {
+  return _active;
+}
+
+/**
+ * Tvinga ett nytt hämtningsförsök NU och vänta tills det är klart. Tänkt
+ * för en debug-knapp i Settings — kringgår 24h-cooldown.
+ */
+export async function forceRefresh(options?: {
+  remoteUrl?: string;
+}): Promise<ActiveScheduleInfo> {
+  const url = options?.remoteUrl ?? DEFAULT_REMOTE_URL;
+  _active = { ..._active, lastFetchStatus: "pending", lastFetchError: null };
+  await backgroundFetch(url, new Date());
+  // Om vi just sparade en cache som är nyare än det aktiva — applicera
+  try {
+    const cached = await readCache();
+    if (cached) {
+      _active = { ..._active, cachedVersion: cached.version };
+      if (isNewer(cached.version, _active.version)) {
+        setChildProgram(cached.childProgram);
+        setValidityRules(cached.validityRules);
+        _active = {
+          ..._active,
+          version: cached.version,
+          source: cached.source,
+          origin: "cached",
+        };
+      }
+    }
+  } catch {
+    // ignore
+  }
   return _active;
 }
 
@@ -92,23 +133,30 @@ export async function bootstrapSchedules(options?: {
   // Steg 1: applicera ev. cacheade scheman
   try {
     const cached = await readCache();
+    if (cached) {
+      _active = { ..._active, cachedVersion: cached.version };
+    }
     if (cached && isNewer(cached.version, _active.version)) {
       setChildProgram(cached.childProgram);
       setValidityRules(cached.validityRules);
       _active = {
+        ..._active,
         version: cached.version,
         source: cached.source,
         origin: "cached",
-        lastFetchAttempt: _active.lastFetchAttempt,
       };
     }
-  } catch {
-    // Felaktig cache — ignorera, fortsätt med inbäddat
+  } catch (err) {
+    _active = {
+      ..._active,
+      lastFetchError: `cache read: ${(err as Error).message}`,
+    };
   }
 
   // Steg 2: ev. försök hämta uppdaterad version i bakgrunden
   const shouldFetch = await shouldAttemptFetch(now);
   if (shouldFetch) {
+    _active = { ..._active, lastFetchStatus: "pending" };
     // Vänta INTE — kör tyst i bakgrunden. Nästa app-start applicerar.
     void backgroundFetch(url, now);
   }
@@ -119,15 +167,32 @@ export async function bootstrapSchedules(options?: {
 async function backgroundFetch(url: string, now: Date): Promise<void> {
   try {
     const payload = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
-    if (!isValidPayload(payload)) return;
+    if (!isValidPayload(payload)) {
+      _active = {
+        ..._active,
+        lastFetchStatus: "error",
+        lastFetchError: "invalid payload shape",
+      };
+      return;
+    }
     // TODO: verifiera signatur här innan vi sparar (PLAN §5b)
     await writeCache(payload);
+    _active = {
+      ..._active,
+      lastFetchStatus: "ok",
+      lastFetchError: null,
+      cachedVersion: payload.version,
+    };
     // Räkna bara lyckade hämtningar mot 24h-cooldown. En 404 ska inte
     // blockera nästa försök i ett dygn — vi vill snabbt återhämta oss
     // efter en omkonfigurerad CDN-URL.
     await recordFetchAttempt(now);
-  } catch {
-    // Nätverksfel / parse-fel / timeout — tyst.
+  } catch (err) {
+    _active = {
+      ..._active,
+      lastFetchStatus: "error",
+      lastFetchError: (err as Error).message,
+    };
   }
 }
 
@@ -197,12 +262,16 @@ async function recordFetchAttempt(now: Date): Promise<void> {
 }
 
 async function shouldAttemptFetch(now: Date): Promise<boolean> {
-  // Ingen cache → försök varje start tills vi får något. Cooldown gäller
-  // bara EFTER att vi lyckats hämta en gång.
+  // Ingen cache, eller cache är inte nyare än det inbäddade → fortsätt
+  // försöka varje start tills vi har något verkligt fräscht. Cooldown
+  // gäller bara EFTER att vi lyckats hämta något nyare än bundled.
+  let cache: RemoteSchedulePayload | null = null;
   try {
-    const cacheInfo = await FileSystem.getInfoAsync(CACHE_FILE);
-    if (!cacheInfo.exists) return true;
+    cache = await readCache();
   } catch {
+    // ignore
+  }
+  if (!cache || !isNewer(cache.version, BUNDLED_VERSION)) {
     return true;
   }
   try {

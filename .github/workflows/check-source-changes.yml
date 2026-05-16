@@ -1,0 +1,82 @@
+name: Check schedule sources for changes
+
+# Watches Folkhälsomyndigheten / 1177 / WHO pages that drive Vaccinloggen's
+# schedules. When a page's content changes, opens an issue for human review.
+# See PLAN.md §5b for the rationale.
+
+on:
+  schedule:
+    # 07:00 UTC daily = 08:00–09:00 svensk tid (sommar-/vintertid)
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run source-change detector
+        id: detect
+        run: node scripts/check-source-changes.mjs
+
+      - name: Commit updated hashes
+        if: steps.detect.outputs.file_changed == 'true'
+        run: |
+          git config user.name "vaccinloggen-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git diff --quiet -- data/source-hashes.json; then
+            echo "No diff in data/source-hashes.json — nothing to commit."
+          else
+            git add data/source-hashes.json
+            git commit -m "Bump source-hashes ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: Open issue when content changed
+        if: steps.detect.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        env:
+          CHANGES: ${{ steps.detect.outputs.changes }}
+        with:
+          script: |
+            const changes = JSON.parse(process.env.CHANGES);
+            const today = new Date().toISOString().slice(0, 10);
+            const lines = changes.map(c =>
+              `- **${c.label}** — [öppna sidan](${c.url})\n  - hash \`${c.oldHash}\` → \`${c.newHash}\`\n  - previously checked: ${c.previouslyChecked || 'unknown'}`
+            );
+            const body = [
+              `Daily source check detected content changes on ${changes.length} page(s):`,
+              "",
+              ...lines,
+              "",
+              "**Review steps:**",
+              "1. Open each URL above and look for changes to vaccine schedules, ages, or recommendations.",
+              "2. Compare against [Wayback Machine](https://web.archive.org/) if you need a side-by-side.",
+              "3. If a schedule actually changed:",
+              "   - Update `mobile/src/schedules/child-program.ts` and/or `mobile/src/schedules/validity.ts`.",
+              "   - Mirror in `data/schedules/v1.json` (bump `version` to today's date).",
+              "   - Bump `BUNDLED_VERSION` in `mobile/src/schedules/remote-refresh.ts`.",
+              "   - Push to main — Pages auto-deploys and live apps pick it up via remote refresh.",
+              "4. If it's just cosmetic (date stamp, copy edits): close this issue.",
+            ].join("\n");
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Schedule source change detected (${today})`,
+              body,
+              labels: ["schedule-source-change"],
+            });
+
+      - name: Report fetch errors (non-blocking)
+        if: steps.detect.outputs.errors != '[]' && steps.detect.outputs.errors != ''
+        run: |
+          echo "::warning::Some sources failed to fetch — see logs above."

@@ -1,0 +1,20 @@
+{
+  "_comment": "Vaccinationsschema-källor som GitHub Action hashar dagligen. Lägg till/ta bort URL:er här när officiella sidor flyttas eller nya källor blir relevanta. id måste vara unikt och stabilt. TODO: lägg tillbaka separata TBE-, influensa- och 1177-sidor när korrekta URL:er är verifierade — föregående gissningar 404:ade.",
+  "sources": [
+    {
+      "id": "fhm-vaccinationer-overview",
+      "label": "Folkhälsomyndigheten — Vaccinationer (översikt)",
+      "url": "https://www.folkhalsomyndigheten.se/smittskydd-beredskap/vaccinationer/"
+    },
+    {
+      "id": "rikshandboken-barnvaccin",
+      "label": "Rikshandboken — Barnvaccinationer",
+      "url": "https://www.rikshandboken-bhv.se/halsobesok/vaccinationer/"
+    },
+    {
+      "id": "who-yellow-fever",
+      "label": "WHO — Yellow Fever (IHR vaccination requirements)",
+      "url": "https://www.who.int/health-topics/yellow-fever"
+    }
+  ]
+}
