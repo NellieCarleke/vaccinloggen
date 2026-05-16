@@ -118,11 +118,14 @@ export async function bootstrapSchedules(options?: {
 
 async function backgroundFetch(url: string, now: Date): Promise<void> {
   try {
-    await recordFetchAttempt(now);
     const payload = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
     if (!isValidPayload(payload)) return;
     // TODO: verifiera signatur här innan vi sparar (PLAN §5b)
     await writeCache(payload);
+    // Räkna bara lyckade hämtningar mot 24h-cooldown. En 404 ska inte
+    // blockera nästa försök i ett dygn — vi vill snabbt återhämta oss
+    // efter en omkonfigurerad CDN-URL.
+    await recordFetchAttempt(now);
   } catch {
     // Nätverksfel / parse-fel / timeout — tyst.
   }
@@ -194,6 +197,14 @@ async function recordFetchAttempt(now: Date): Promise<void> {
 }
 
 async function shouldAttemptFetch(now: Date): Promise<boolean> {
+  // Ingen cache → försök varje start tills vi får något. Cooldown gäller
+  // bara EFTER att vi lyckats hämta en gång.
+  try {
+    const cacheInfo = await FileSystem.getInfoAsync(CACHE_FILE);
+    if (!cacheInfo.exists) return true;
+  } catch {
+    return true;
+  }
   try {
     const info = await FileSystem.getInfoAsync(LAST_FETCH_KEY);
     if (!info.exists) return true;

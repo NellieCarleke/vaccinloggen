@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-16",
+  "version": "2026-05-17",
   "source": "Folkhälsomyndigheten",
   "childProgram": [
     { "code": "ROTAVIRUS", "dose": 1, "trigger": { "kind": "weeks", "value": 6 }, "reason": "barnprogram-bvc", "availableFrom": "2019-09-01" },
