@@ -7,7 +7,7 @@ giltighetsregel sen senaste app-release. Filen serveras från en statisk CDN.
 ## URL appen letar på
 
 ```
-https://vaccinloggen.github.io/schedules/v1.json
+https://nelliecarleke.github.io/vaccinloggen/data/schedules/v1.json
 ```
 
 (definierad i `mobile/src/schedules/remote-refresh.ts`, kan ändras innan

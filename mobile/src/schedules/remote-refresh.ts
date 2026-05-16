@@ -35,7 +35,7 @@ const MIN_FETCH_INTERVAL_HOURS = 24;
  * existerar).
  */
 const DEFAULT_REMOTE_URL =
-  "https://vaccinloggen.github.io/schedules/v1.json";
+  "https://nelliecarleke.github.io/vaccinloggen/data/schedules/v1.json";
 
 export interface RemoteSchedulePayload {
   /** ISO-datum (YYYY-MM-DD) — när filen senast uppdaterades. */
