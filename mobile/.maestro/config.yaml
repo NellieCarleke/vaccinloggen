@@ -1,0 +1,8 @@
+# Maestro project config. Picks up all flows in this directory.
+appId: se.vaccinloggen.app
+flows:
+  - "01-onboarding.yaml"
+  - "02-add-vaccination.yaml"
+  - "03-expected-dose-prefill.yaml"
+  - "04-trip-recommendations.yaml"
+  - "05-share-export.yaml"

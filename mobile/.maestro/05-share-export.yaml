@@ -1,0 +1,20 @@
+# Öppna en profil och tryck Dela → verifiera att share-skärmen visas
+# med PDF + krypterad fil-alternativ.
+appId: se.vaccinloggen.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Lås upp"
+    commands:
+      - tapOn:
+          id: "lock-unlock"
+# Tryck på det aktiva profil-kortet (top på home)
+- tapOn:
+    text: "född.*"
+    optional: true
+- assertVisible: "Vaccinationskort"
+- assertVisible: "Dela"
+- tapOn: "Dela"
+- assertVisible: "Exportera som PDF"
+- assertVisible: "Dela krypterat"

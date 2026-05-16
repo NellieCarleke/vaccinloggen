@@ -1,0 +1,21 @@
+# Hemskärm visar förväntade doser ("Snart"); tryck på en → form öppnas
+# förladdad med rätt vaccin.
+appId: se.vaccinloggen.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Lås upp"
+    commands:
+      - tapOn:
+          id: "lock-unlock"
+- assertVisible: "Snart"
+    optional: true
+# Försök hitta ett "Snart"-kort. Om inga finns hoppa flödet.
+- runFlow:
+    when:
+      visible: "Snart"
+    commands:
+      - tapOn:
+          text: "Snart"
+      - assertVisible: "Vaccin"

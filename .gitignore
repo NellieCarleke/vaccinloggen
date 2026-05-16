@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs / temp
+*.log
+/tmp/
+
+# Claude Code metadata
+.claude/
+
+# Local env
+.env
+.env.local

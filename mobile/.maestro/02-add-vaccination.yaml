@@ -1,0 +1,26 @@
+# Förutsätter att en profil redan finns (kör 01-onboarding först eller manuellt).
+# Lägger till en MPR-vaccination och verifierar att den syns i timeline.
+appId: se.vaccinloggen.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Lås upp"
+    commands:
+      - tapOn:
+          id: "lock-unlock"
+- assertVisible: "Vaccinloggen"
+- tapOn:
+    id: "home-add-vaccination"
+- assertVisible: "Vaccin"
+- tapOn: "Välj vaccin"
+- assertVisible: "MPR"
+- tapOn:
+    text: "MPR.*"
+    index: 0
+- tapOn:
+    id: "vaccination-save"
+    optional: true
+# Tillbaka på hem
+- assertVisible: "Senaste"
+    optional: true

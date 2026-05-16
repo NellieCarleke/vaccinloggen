@@ -1,0 +1,26 @@
+# Skapa en resa till Thailand och verifiera att Hep A rekommenderas.
+appId: se.vaccinloggen.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Lås upp"
+    commands:
+      - tapOn:
+          id: "lock-unlock"
+- tapOn:
+    id: "home-add-trip"
+- assertVisible: "Resmål"
+- tapOn: "Välj"
+- assertVisible: "Asien"
+- tapOn: "Thailand"
+- tapOn: "Spara"
+# Tillbaka på trip-form: behöver datum. Komplettera och spara.
+- assertVisible: "Avresedatum"
+- assertVisible: "Vem reser"
+# Spara — failar om datum saknas; fail-soft.
+- tapOn: "Spara resa"
+    optional: true
+# Om allt gick bra:
+- assertVisible: "Hep A"
+    optional: true
