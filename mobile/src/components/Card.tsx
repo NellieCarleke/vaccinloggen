@@ -9,6 +9,10 @@ interface Props {
   padded?: boolean;
   elevated?: boolean;
   style?: ViewStyle;
+  /** VoiceOver-label för hela kortet när det är klickbart. Krävs inte men
+   *  rekommenderas på ikon-tunga rader så skärmläsaren får en meningsfull
+   *  beskrivning istället för att läsa upp varje barn-element separat. */
+  accessibilityLabel?: string;
 }
 
 export function Card({
@@ -17,6 +21,7 @@ export function Card({
   padded = true,
   elevated = false,
   style,
+  accessibilityLabel,
 }: Props) {
   const { colors } = useTheme();
   const baseStyle: ViewStyle = {
@@ -32,6 +37,8 @@ export function Card({
     return (
       <Pressable
         onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
         style={({ pressed }) => [
           baseStyle,
           { opacity: pressed ? 0.9 : 1 },

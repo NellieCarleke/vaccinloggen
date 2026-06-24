@@ -1,12 +1,14 @@
-import { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { useMemo, useRef } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Syringe } from "lucide-react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import { Syringe, Trash2 } from "lucide-react-native";
 
 import { Card } from "./Card";
 import { Text } from "./Text";
 import { type Vaccination } from "../db/vaccinations";
 import { vaccineLabel } from "../schedules/vaccines";
+import { useVaccinations } from "../stores/vaccinationsStore";
 import { t } from "../i18n/sv";
 import { radii, spacing } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
@@ -59,6 +61,8 @@ function Row({
 }) {
   const router = useRouter();
   const { colors } = useTheme();
+  const remove = useVaccinations((s) => s.remove);
+  const swipeRef = useRef<Swipeable>(null);
   const label =
     vaccination.vaccineCode === "OTHER" && vaccination.vaccineLabel
       ? vaccination.vaccineLabel
@@ -66,45 +70,84 @@ function Row({
 
   const ageHint = birthdate ? ageAtDose(birthdate, vaccination.date) : null;
 
+  function confirmDelete() {
+    Alert.alert(
+      t("vaccination.deleteConfirmTitle"),
+      t("vaccination.deleteConfirmBody"),
+      [
+        {
+          text: t("profile.cancel"),
+          style: "cancel",
+          onPress: () => swipeRef.current?.close(),
+        },
+        {
+          text: t("profile.delete"),
+          style: "destructive",
+          onPress: async () => {
+            await remove(vaccination.id);
+          },
+        },
+      ],
+    );
+  }
+
   return (
-    <Card
-      onPress={() => router.push(`/vaccination/${vaccination.id}`)}
-      padded={false}
-      style={styles.row}
+    <Swipeable
+      ref={swipeRef}
+      renderRightActions={() => (
+        <Pressable
+          onPress={confirmDelete}
+          accessibilityRole="button"
+          accessibilityLabel={`Radera ${label}`}
+          style={[styles.deleteAction, { backgroundColor: colors.error }]}
+        >
+          <Trash2 size={20} color="#fff" />
+        </Pressable>
+      )}
+      overshootRight={false}
     >
-      <View style={[styles.iconWrap, { backgroundColor: colors.primaryMuted }]}>
-        <Syringe size={18} color={colors.primaryDeep} />
-      </View>
-      <View style={styles.rowContent}>
-        <View style={styles.rowTop}>
-          <Text variant="bodyBold" numberOfLines={1} style={{ flex: 1 }}>
-            {label}
-          </Text>
-          {vaccination.source === "self-reported" && (
-            <View style={[styles.badge, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
-              <Text variant="caption" tone="muted" style={styles.badgeText}>
-                {t("history.selfReportedBadge")}
+      <Card
+        onPress={() => router.push(`/vaccination/${vaccination.id}`)}
+        padded={false}
+        accessibilityLabel={`${label}${
+          vaccination.doseNumber != null ? `, dos ${vaccination.doseNumber}` : ""
+        }, ${formatDateLong(vaccination.date)}`}
+        style={styles.row}
+      >
+        <View style={[styles.iconWrap, { backgroundColor: colors.primaryMuted }]}>
+          <Syringe size={18} color={colors.primaryDeep} />
+        </View>
+        <View style={styles.rowContent}>
+          <View style={styles.rowTop}>
+            <Text variant="bodyBold" numberOfLines={1} style={{ flex: 1 }}>
+              {label}
+            </Text>
+            {vaccination.source === "self-reported" && (
+              <View style={[styles.badge, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                <Text variant="caption" tone="muted" style={styles.badgeText}>
+                  {t("history.selfReportedBadge")}
+                </Text>
+              </View>
+            )}
+            {vaccination.doseNumber != null && (
+              <Text variant="caption" tone="accent">
+                {t("vaccination.doseLabel").replace("{n}", String(vaccination.doseNumber))}
               </Text>
-            </View>
-          )}
-          {vaccination.doseNumber != null && (
-            <Text variant="caption" tone="accent">
-              {t("vaccination.doseLabel").replace("{n}", String(vaccination.doseNumber))}
+            )}
+          </View>
+          <Text variant="caption" tone="secondary">
+            {formatDateLong(vaccination.date)}
+            {ageHint ? ` · ${ageHint}` : ""}
+            {vaccination.brand ? ` · ${vaccination.brand}` : ""}
+          </Text>
+          {vaccination.provider && (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {vaccination.provider}
             </Text>
           )}
         </View>
-        <Text variant="caption" tone="secondary">
-          {formatDateLong(vaccination.date)}
-          {ageHint ? ` · ${ageHint}` : ""}
-          {vaccination.brand ? ` · ${vaccination.brand}` : ""}
-        </Text>
-        {vaccination.provider && (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {vaccination.provider}
-          </Text>
-        )}
-      </View>
-    </Card>
+      </Card>
+    </Swipeable>
   );
 }
 
@@ -165,4 +208,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   badgeText: { fontSize: 10, letterSpacing: 0.4, textTransform: "uppercase" },
+  deleteAction: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 72,
+    borderRadius: radii.md,
+    marginLeft: spacing.sm,
+  },
 });
