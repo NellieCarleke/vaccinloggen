@@ -1,3 +1,6 @@
+// Måste vara FÖRST — seedar tweetnacl:s PRNG innan något annat rör nacl.
+import "@/src/cryptoSetup";
+
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Stack } from "expo-router";
