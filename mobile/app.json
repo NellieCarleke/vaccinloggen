@@ -10,10 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "se.carleke.vaccinloggen"
+      "bundleIdentifier": "se.carleke.vaccinloggen",
+      "buildNumber": "1"
     },
     "android": {
       "package": "se.vaccinloggen.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FAFAF7",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

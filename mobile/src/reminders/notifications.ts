@@ -40,7 +40,22 @@ async function configureChannel(): Promise<void> {
   }
 }
 
-export async function ensurePermission(): Promise<boolean> {
+/**
+ * Returnerar nuvarande tillstånd UTAN att trigga systemprompten. Säker att
+ * anropa i bakgrunden (t.ex. vid app-start).
+ */
+export async function hasNotificationPermission(): Promise<boolean> {
+  await configureChannel();
+  const settings = await Notifications.getPermissionsAsync();
+  return settings.granted;
+}
+
+/**
+ * Triggar systemprompten om vi får (canAskAgain). iOS visar prompten EN gång
+ * per installation — anropa bara från explicit användarhandling efter att
+ * användaren sett en primer som förklarar varför vi vill skicka påminnelser.
+ */
+export async function requestNotificationPermission(): Promise<boolean> {
   await configureChannel();
   const settings = await Notifications.getPermissionsAsync();
   if (settings.granted) return true;
@@ -61,7 +76,11 @@ export async function rescheduleAll(
   vaccinations: Vaccination[],
   today = new Date(),
 ): Promise<void> {
-  const granted = await ensurePermission();
+  // Trigga ALDRIG systemprompten från bakgrunds-reschedulering. Om
+  // användaren ännu inte sagt ja schemaläggs inga notiser; så snart de
+  // beviljat behörighet via primer-flödet kommer nästa rescheduleAll
+  // (vid första data-ändring efteråt) att fylla på.
+  const granted = await hasNotificationPermission();
   if (!granted) return;
 
   // Cancel all our previously scheduled notifications. Filter by content data

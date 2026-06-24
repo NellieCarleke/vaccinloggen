@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import * as SplashScreen from "expo-splash-screen";
 
@@ -14,6 +15,7 @@ import { useTrips } from "@/src/stores/tripsStore";
 import { useVaccinations } from "@/src/stores/vaccinationsStore";
 import { useTheme } from "@/src/theme/useTheme";
 import { LockGate } from "@/src/components/LockGate";
+import { ErrorBoundary } from "@/src/components/ErrorBoundary";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* if splash already hid, ignore */
@@ -75,14 +77,16 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <LockGate>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+        <LockGate>
         <Stack
           screenOptions={{
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.textPrimary,
             headerShadowVisible: false,
-            headerBackTitle: "Hem",
+            headerBackTitle: "",
             contentStyle: { backgroundColor: colors.background },
           }}
         >
@@ -140,7 +144,9 @@ export default function RootLayout() {
           />
         </Stack>
       </LockGate>
+      </ErrorBoundary>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

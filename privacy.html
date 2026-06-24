@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Integritetspolicy — Vaccinloggen</title>
+<style>
+  body { font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #222; }
+  h1 { margin-bottom: 0; }
+  h2 { margin-top: 2em; }
+  .updated { color: #666; font-size: 0.9em; margin-top: 0.25em; }
+  a { color: #0E7C7B; }
+  code { background: #f3f3f0; padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Integritetspolicy</h1>
+<p class="updated">Vaccinloggen · Senast uppdaterad: 2026-06-24</p>
+
+<h2>Sammanfattning</h2>
+<p>
+  Vaccinloggen är en lokal-först app. <strong>Alla vaccinationsuppgifter, profiler, bilagor och resor sparas enbart på din enhet.</strong> Vi har ingen server, inget konto, och vi tar inte emot, lagrar eller delar dina uppgifter med någon utomstående.
+</p>
+
+<h2>Vilka uppgifter behandlas?</h2>
+<p>
+  All data du matar in i appen — namn, födelsedatum, vaccinationsposter, fabrikat, batchnummer, anteckningar, bilagor (foton/PDF), resmål — sparas i en SQLite-databas och i appens dokumentmapp inom appens sandlåda på din enhet. Inget av detta lämnar enheten utan att du själv aktivt initierar det (t.ex. via "Exportera" eller systemets "Dela"-meny).
+</p>
+
+<h2>Skickar appen några nätverksanrop?</h2>
+<p>
+  Ja, ett enda: en gång om dygnet (när appen startas) försöker den hämta en publikt tillgänglig JSON-fil från <code>https://nelliecarleke.github.io/vaccinloggen/data/schedules/v1.json</code> för att hålla vaccinationsscheman aktuella mot Folkhälsomyndighetens rekommendationer. Anropet innehåller inga personuppgifter — bara en HTTP GET för en statisk fil. Den fil som hämtas är samma för alla användare.
+</p>
+
+<h2>Behörigheter på enheten</h2>
+<ul>
+  <li><strong>Face ID / Touch ID</strong> — valfri biometrisk låsning av appen. Används enbart för att låsa upp lokalt.</li>
+  <li><strong>Foton / kamera</strong> — för att bifoga foton av vaccinationskort eller kvitton. Bilderna kopieras in i appens egen mapp.</li>
+  <li><strong>Notiser</strong> — för påminnelser om nästa dos. Notiser schemaläggs lokalt på enheten, inga remote push-meddelanden skickas.</li>
+</ul>
+
+<h2>Spridning av dina data</h2>
+<p>
+  Vi delar inte och säljer inte några uppgifter — vi har dem inte. Vill du dela data med en partner använder du appens "Exportera"-funktion som skapar en krypterad fil som du själv väljer att skicka via valfri kanal.
+</p>
+
+<h2>Radera dina data</h2>
+<p>
+  Gå till Inställningar → Data → "Rensa alla data". Det raderar alla profiler, vaccinationer, resor och bilagor från enheten. Du kan också avinstallera appen — det tar bort all data eftersom inget sparas utanför enheten.
+</p>
+
+<h2>Barn</h2>
+<p>
+  Appen är tänkt för hela familjen och du kan registrera barns vaccinationer som vårdnadshavare. Eftersom inga uppgifter lämnar enheten är ingen särskild separat behandling nödvändig — datan stannar hos dig.
+</p>
+
+<h2>Ändringar</h2>
+<p>
+  Om policyn ändras meddelas det i en kommande appversion. Du kan alltid läsa den aktuella versionen på <a href="https://nelliecarleke.github.io/vaccinloggen/privacy.html">denna sida</a>.
+</p>
+
+<h2>Kontakt</h2>
+<p>
+  Frågor: <a href="mailto:nellie.carleke@froda.se">nellie.carleke@froda.se</a>
+</p>
+
+</body>
+</html>

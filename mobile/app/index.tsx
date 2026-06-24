@@ -34,7 +34,7 @@ export default function Home() {
 
   if (profiles.length === 0) {
     return (
-      <Screen>
+      <Screen scroll>
         <Header title={t("app.name")} subtitle={t("app.tagline")} />
         <EmptyState
           title={t("home.welcomeTitle")}
@@ -59,6 +59,14 @@ export default function Home() {
             </View>
           }
         />
+        <Card style={styles.disclaimer}>
+          <Text variant="bodyBold" style={{ marginBottom: spacing.xs }}>
+            {t("settings.legalDisclaimer")}
+          </Text>
+          <Text variant="caption" tone="secondary">
+            {t("settings.legalDisclaimerBody")}
+          </Text>
+        </Card>
       </Screen>
     );
   }
@@ -72,6 +80,8 @@ export default function Home() {
           <Pressable
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onPress={() => router.push("/settings" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Inställningar"
             hitSlop={12}
             style={{ padding: spacing.xs }}
           >
@@ -167,4 +177,5 @@ const styles = StyleSheet.create({
   tripCard: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   bottomBtn: { marginTop: spacing.xl },
   welcomeActions: { gap: spacing.sm, width: 280 },
+  disclaimer: { marginTop: spacing.lg },
 });
