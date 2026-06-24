@@ -30,6 +30,7 @@ function vac(code: string, dose: number, date: string): Vaccination {
     batch: null,
     notes: null,
     source: "manual",
+    savedWithConflict: false,
     createdAt: `${date}T00:00:00Z`,
   };
 }

@@ -13,6 +13,7 @@ export default function EditVaccination() {
   const vaccination = useVaccinations((s) =>
     s.vaccinations.find((v) => v.id === id),
   );
+  const allVaccinations = useVaccinations((s) => s.vaccinations);
   const update = useVaccinations((s) => s.update);
   const remove = useVaccinations((s) => s.remove);
 
@@ -29,6 +30,7 @@ export default function EditVaccination() {
       <VaccinationForm
         profileId={vaccination.profileId}
         initial={vaccination}
+        existingVaccinations={allVaccinations}
         onSubmit={async (input) => {
           await update(vaccination.id, input);
           router.back();

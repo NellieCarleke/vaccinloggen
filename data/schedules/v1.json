@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-17",
+  "version": "2026-06-24",
   "source": "Folkhälsomyndigheten",
   "childProgram": [
     { "code": "ROTAVIRUS", "dose": 1, "trigger": { "kind": "weeks", "value": 6 }, "reason": "barnprogram-bvc", "availableFrom": "2019-09-01" },
@@ -26,22 +26,74 @@
     "HPV": { "fullSeriesDoses": 2, "validityYearsAfterFullSeries": null },
     "VARICELLA": { "fullSeriesDoses": 2, "validityYearsAfterFullSeries": null },
     "BCG": { "fullSeriesDoses": 1, "validityYearsAfterFullSeries": null },
-    "TETANUS_DIPHTHERIA": { "fullSeriesDoses": 3, "boosterEveryYears": 20 },
+    "TETANUS_DIPHTHERIA": {
+      "fullSeriesDoses": 3,
+      "boosterEveryYears": 20,
+      "primarySeriesSpacing": [
+        { "minDays": 30, "maxDays": 60 },
+        { "minDays": 180, "maxDays": 365 }
+      ]
+    },
     "DTAP": { "fullSeriesDoses": 5, "boosterEveryYears": 20 },
     "DTP_IPV": { "fullSeriesDoses": 4, "boosterEveryYears": 20 },
     "INFLUENZA": { "fullSeriesDoses": 1, "boosterEveryYears": 1 },
     "COVID_19": { "fullSeriesDoses": 1, "boosterEveryYears": 1 },
-    "TBE": { "fullSeriesDoses": 3, "customBoosterMonths": [36, 96, 156, 216] },
+    "TBE": {
+      "fullSeriesDoses": 3,
+      "customBoosterMonths": [36, 96, 156, 216],
+      "primarySeriesSpacing": [
+        { "minDays": 30, "maxDays": 90 },
+        { "minDays": 150, "maxDays": 365 }
+      ]
+    },
     "RSV": { "fullSeriesDoses": 1, "boosterEveryYears": 1 },
-    "HEP_A": { "fullSeriesDoses": 2, "validityYearsAfterFullSeries": 25 },
-    "HEP_B": { "fullSeriesDoses": 3, "validityYearsAfterFullSeries": null },
-    "HEP_AB": { "fullSeriesDoses": 3, "validityYearsAfterFullSeries": 25 },
+    "HEP_A": {
+      "fullSeriesDoses": 2,
+      "validityYearsAfterFullSeries": 25,
+      "primarySeriesSpacing": [{ "minDays": 180, "maxDays": 365 }]
+    },
+    "HEP_B": {
+      "fullSeriesDoses": 3,
+      "validityYearsAfterFullSeries": null,
+      "primarySeriesSpacing": [
+        { "minDays": 28, "maxDays": 60 },
+        { "minDays": 120, "maxDays": 180 }
+      ]
+    },
+    "HEP_AB": {
+      "fullSeriesDoses": 3,
+      "validityYearsAfterFullSeries": 25,
+      "primarySeriesSpacing": [
+        { "minDays": 28, "maxDays": 60 },
+        { "minDays": 120, "maxDays": 180 }
+      ]
+    },
     "TYPHOID": { "fullSeriesDoses": 1, "validityYearsAfterFullSeries": 3 },
     "YELLOW_FEVER": { "fullSeriesDoses": 1, "validityYearsAfterFullSeries": null },
-    "JAPANESE_ENCEPHALITIS": { "fullSeriesDoses": 2, "validityYearsAfterFullSeries": 1, "boosterEveryYears": 10 },
-    "RABIES": { "fullSeriesDoses": 3, "validityYearsAfterFullSeries": 2 },
-    "CHOLERA": { "fullSeriesDoses": 2, "validityYearsAfterFullSeries": 2 },
+    "JAPANESE_ENCEPHALITIS": {
+      "fullSeriesDoses": 2,
+      "validityYearsAfterFullSeries": 1,
+      "boosterEveryYears": 10,
+      "primarySeriesSpacing": [{ "minDays": 28, "maxDays": 330 }]
+    },
+    "RABIES": {
+      "fullSeriesDoses": 3,
+      "validityYearsAfterFullSeries": 2,
+      "primarySeriesSpacing": [
+        { "minDays": 7, "maxDays": 14 },
+        { "minDays": 14, "maxDays": 21 }
+      ]
+    },
+    "CHOLERA": {
+      "fullSeriesDoses": 2,
+      "validityYearsAfterFullSeries": 2,
+      "primarySeriesSpacing": [{ "minDays": 7, "maxDays": 42 }]
+    },
     "MENINGOCOCCAL_ACWY": { "fullSeriesDoses": 1, "validityYearsAfterFullSeries": 5 },
-    "MENINGOCOCCAL_B": { "fullSeriesDoses": 2, "validityYearsAfterFullSeries": null }
+    "MENINGOCOCCAL_B": {
+      "fullSeriesDoses": 2,
+      "validityYearsAfterFullSeries": null,
+      "primarySeriesSpacing": [{ "minDays": 28, "maxDays": 60 }]
+    }
   }
 }

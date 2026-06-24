@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 import { AttachmentPicker, type PickedAttachment } from "./AttachmentPicker";
 import { PendingAttachmentList } from "./PendingAttachmentList";
 import { Button } from "./Button";
-import { Card } from "./Card";
 import { DateField } from "./DateField";
 import { Input } from "./Input";
 import { Text } from "./Text";
@@ -12,6 +11,7 @@ import { VaccineSelect } from "./VaccineSelect";
 import { type Vaccination, type VaccinationInput } from "../db/vaccinations";
 import { type AttachmentKind } from "../db/attachments";
 import { getVaccine } from "../schedules/vaccines";
+import { checkDoseConflict, formatConflictMessage } from "../schedules/doseConflict";
 import { t } from "../i18n/sv";
 import { spacing } from "../theme/tokens";
 import { dayjs } from "../utils/dates";
@@ -30,6 +30,9 @@ interface Props {
   /** When true, show inline attachment picker that captures pending attachments
    *  to commit on save. Used in the create flow. */
   allowAttachments?: boolean;
+  /** Alla vaccinationer (för konfliktdetektion). När tom hoppar vi över
+   *  konflikt-blockern. */
+  existingVaccinations?: readonly Vaccination[];
   onSubmit: (
     input: VaccinationInput,
     attachments: PendingAttachment[],
@@ -45,6 +48,7 @@ export function VaccinationForm({
   prefillCode,
   prefillDose,
   allowAttachments,
+  existingVaccinations,
   onSubmit,
   onCancel,
   onDelete,
@@ -55,8 +59,11 @@ export function VaccinationForm({
   );
   const [vaccineLabel, setVaccineLabel] = useState(initial?.vaccineLabel ?? "");
   const [brand, setBrand] = useState(initial?.brand ?? "");
+  // Matcha vad DateField visar visuellt (idag). Annars kräver iOS-picker:n
+  // att man rör hjulet innan onChange fyrar — formuläret tror datumet
+  // saknas trots att "idag" syns i kalendern.
   const [date, setDate] = useState<Date | null>(
-    initial?.date ? new Date(initial.date) : null,
+    initial?.date ? new Date(initial.date) : new Date(),
   );
   const [doseStr, setDoseStr] = useState(
     initial?.doseNumber
@@ -97,11 +104,9 @@ export function VaccinationForm({
     return Object.keys(next).length === 0;
   }
 
-  async function handleSubmit() {
-    if (!validate()) return;
+  async function commit(dose: number | null, savedWithConflict = false) {
     setSubmitting(true);
     try {
-      const dose = doseStr.trim() ? parseInt(doseStr, 10) : null;
       await onSubmit(
         {
           profileId,
@@ -113,12 +118,40 @@ export function VaccinationForm({
           provider: provider.trim() || null,
           batch: batch.trim() || null,
           notes: notes.trim() || null,
+          savedWithConflict,
         },
         pending,
       );
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleSubmit() {
+    if (!validate()) return;
+    const dose = doseStr.trim() ? parseInt(doseStr, 10) : null;
+
+    if (existingVaccinations && vaccineCode && dose != null) {
+      const conflict = checkDoseConflict(
+        {
+          profileId,
+          vaccineCode,
+          doseNumber: dose,
+          excludeId: initial?.id,
+        },
+        existingVaccinations,
+      );
+      if (conflict.kind !== "ok") {
+        const { title, body } = formatConflictMessage(conflict, dose);
+        Alert.alert(title, body, [
+          { text: "Avbryt", style: "cancel" },
+          { text: "Spara ändå", onPress: () => void commit(dose, true) },
+        ]);
+        return;
+      }
+    }
+
+    await commit(dose);
   }
 
   function handlePicked(picked: PickedAttachment) {

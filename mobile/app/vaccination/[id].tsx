@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Pencil, Syringe } from "lucide-react-native";
@@ -14,6 +14,7 @@ import { type Attachment, listAttachments } from "@/src/db/attachments";
 import { useProfiles } from "@/src/stores/profilesStore";
 import { useVaccinations } from "@/src/stores/vaccinationsStore";
 import { vaccineLabel } from "@/src/schedules/vaccines";
+import { deriveExpectedDoses } from "@/src/reminders/derive";
 import { t } from "@/src/i18n/sv";
 import { radii, spacing } from "@/src/theme/tokens";
 import { useTheme } from "@/src/theme/useTheme";
@@ -26,10 +27,19 @@ export default function VaccinationDetail() {
   const vaccination = useVaccinations((s) =>
     s.vaccinations.find((v) => v.id === id),
   );
+  const allVaccinations = useVaccinations((s) => s.vaccinations);
   const remove = useVaccinations((s) => s.remove);
   const profile = useProfiles((s) =>
     vaccination ? s.profiles.find((p) => p.id === vaccination.profileId) : null,
   );
+
+  const nextDose = useMemo(() => {
+    if (!profile || !vaccination) return null;
+    const all = deriveExpectedDoses(profile, allVaccinations, new Date());
+    return (
+      all.find((d) => d.code === vaccination.vaccineCode) ?? null
+    );
+  }, [profile, vaccination, allVaccinations]);
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
@@ -115,6 +125,41 @@ export default function VaccinationDetail() {
           <Field label="Batch" value={vaccination.batch} divider />
         )}
       </Card>
+
+      {nextDose && (
+        <Card style={styles.card}>
+          <Text variant="captionBold" tone="secondary" style={styles.cardLabel}>
+            NÄSTA DOS
+          </Text>
+          <View style={styles.nextDoseBody}>
+            {nextDose.doseNumber != null && (
+              <Text variant="bodyBold">{`Dos ${nextDose.doseNumber}`}</Text>
+            )}
+            <Text>{`Deadline ${formatDateLong(nextDose.dueDate)}`}</Text>
+            {nextDose.availableFrom && (
+              <Text tone="secondary">{`Kan tas tidigast ${formatDateLong(
+                nextDose.availableFrom,
+              )}`}</Text>
+            )}
+            <Text
+              tone={
+                nextDose.status === "overdue"
+                  ? "error"
+                  : nextDose.status === "soon"
+                    ? "primary"
+                    : "muted"
+              }
+              variant="caption"
+            >
+              {nextDose.status === "overdue"
+                ? `${Math.abs(nextDose.daysUntilDue)} dagar försenat`
+                : nextDose.daysUntilDue === 0
+                  ? "Idag"
+                  : `Om ${nextDose.daysUntilDue} dagar`}
+            </Text>
+          </View>
+        </Card>
+      )}
 
       {vaccination.notes && (
         <Card style={styles.card}>
@@ -204,6 +249,7 @@ const styles = StyleSheet.create({
   heroText: { flex: 1 },
   card: { marginTop: spacing.md, padding: 0 },
   cardLabel: { letterSpacing: 0.6, padding: spacing.base, paddingBottom: 0 },
+  nextDoseBody: { padding: spacing.base, gap: spacing.xs },
   fieldRow: {
     flexDirection: "row",
     alignItems: "center",

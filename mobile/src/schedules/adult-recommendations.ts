@@ -23,6 +23,9 @@ function childProgramCodes(): Set<string> {
 export interface AdultExpectedDose {
   code: string;
   doseNumber: number | null;
+  /** Tidigast tillåtet att ta dosen. Saknas när vi inte har spacing-data. */
+  availableFrom?: Date;
+  /** Deadline: senaste rekommenderade datumet. */
   dueDate: Date;
   reason: ReasonKey;
 }
@@ -105,13 +108,14 @@ function nextDoseFor(
   if (!rule) return null;
   const lastDose = doses[doses.length - 1];
   const lastDate = dayjs(lastDose.date);
-  // To decide if the series is complete, use max(length, doseNumber). The 5y
-  // booster is recorded as "DTP_IPV dose 4" with doses 1–3 living under combo
-  // code DTP_IPV_HIB_HEPB; counting alone would say "1 of 4" and misfire. But
-  // some vaccines (INFLUENZA, COVID_19) record doseNumber=null and rely on
-  // count, so we fall back to length when no dose numbers are tracked.
+  // Räkningsregel R2: om något doseNumber är ifyllt litar vi på det högsta;
+  // om inga är ifyllda räknar vi posterna. Skälet är att låta användaren
+  // korrigera serien genom att skriva ett dosnummer (t.ex. "den senaste var
+  // dos 1") utan att räkningen automatiskt höjs av att det finns äldre
+  // null-poster.
   const maxDoseNumber = Math.max(0, ...doses.map((d) => d.doseNumber ?? 0));
-  const progress = Math.max(doses.length, maxDoseNumber);
+  const anyFilled = doses.some((d) => d.doseNumber != null);
+  const progress = anyFilled ? maxDoseNumber : doses.length;
   const seriesComplete = progress >= rule.fullSeriesDoses;
   const nextDoseNumber = progress + 1;
 
@@ -120,21 +124,34 @@ function nextDoseFor(
     // Defer to CHILD_PROGRAM for age-triggered child vaccines. Their next
     // dose date is determined by age, not by a "+1 month" placeholder.
     if (childProgramCodes().has(code)) return null;
-    // For adult vaccines without per-dose spacing rules, sequential doses are
-    // typically 1–6 months apart; fall back to "1 month from last dose".
-    const dueDate = lastDate.add(1, "month").toDate();
+    const spacing = rule.primarySeriesSpacing?.[progress - 1];
+    if (spacing) {
+      return {
+        code,
+        doseNumber: nextDoseNumber,
+        availableFrom: lastDate.add(spacing.minDays, "day").toDate(),
+        dueDate: lastDate.add(spacing.maxDays, "day").toDate(),
+        reason: reasonFor(code),
+      };
+    }
+    // Fallback when no per-dose spacing is configured: "1 month from last".
     return {
       code,
       doseNumber: nextDoseNumber,
-      dueDate,
+      dueDate: lastDate.add(1, "month").toDate(),
       reason: reasonFor(code),
     };
   }
 
   // TBE has a custom cadence after the primary series.
   if (rule.customBoosterMonths && rule.customBoosterMonths.length > 0) {
-    const seriesCompletionDate = dayjs(doses[rule.fullSeriesDoses - 1].date);
-    const dosesAfterSeries = doses.length - rule.fullSeriesDoses;
+    // Ankare = sista posten i primärserien om den finns. Om progress säger
+    // att serien är klar men antalet poster är färre (t.ex. enda post med
+    // doseNumber=4 via import) faller vi tillbaka på senaste posten så vi
+    // inte indexerar utanför arrayen.
+    const seriesAnchor = doses[rule.fullSeriesDoses - 1] ?? lastDose;
+    const seriesCompletionDate = dayjs(seriesAnchor.date);
+    const dosesAfterSeries = Math.max(0, progress - rule.fullSeriesDoses);
     const offsetMonths =
       rule.customBoosterMonths[
         Math.min(dosesAfterSeries, rule.customBoosterMonths.length - 1)

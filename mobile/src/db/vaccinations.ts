@@ -15,6 +15,8 @@ export interface Vaccination {
   batch: string | null;
   notes: string | null;
   source: VaccinationSource;
+  /** Sant om användaren explicit klickade "Spara ändå" trots gap/duplicering. */
+  savedWithConflict: boolean;
   createdAt: string;
 }
 
@@ -30,6 +32,7 @@ interface Row {
   batch: string | null;
   notes: string | null;
   source: VaccinationSource;
+  saved_with_conflict: number | null;
   created_at: string;
 }
 
@@ -46,6 +49,7 @@ function rowToVaccination(r: Row): Vaccination {
     batch: r.batch,
     notes: r.notes,
     source: r.source,
+    savedWithConflict: r.saved_with_conflict === 1,
     createdAt: r.created_at,
   };
 }
@@ -61,6 +65,8 @@ export interface VaccinationInput {
   batch?: string | null;
   notes?: string | null;
   source?: VaccinationSource;
+  /** Sätts till true när användaren tryckt "Spara ändå" trots konflikt. */
+  savedWithConflict?: boolean;
 }
 
 export async function listVaccinations(profileId?: string): Promise<Vaccination[]> {
@@ -99,11 +105,12 @@ export async function createVaccination(input: VaccinationInput): Promise<Vaccin
     batch: input.batch ?? null,
     notes: input.notes ?? null,
     source: input.source ?? "manual",
+    savedWithConflict: input.savedWithConflict ?? false,
     createdAt: new Date().toISOString(),
   };
   await db.runAsync(
-    `INSERT INTO vaccinations (id, profile_id, vaccine_code, vaccine_label, brand, dose_number, date, provider, batch, notes, source, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO vaccinations (id, profile_id, vaccine_code, vaccine_label, brand, dose_number, date, provider, batch, notes, source, saved_with_conflict, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     v.id,
     v.profileId,
     v.vaccineCode,
@@ -115,6 +122,7 @@ export async function createVaccination(input: VaccinationInput): Promise<Vaccin
     v.batch,
     v.notes,
     v.source,
+    v.savedWithConflict ? 1 : 0,
     v.createdAt,
   );
   return v;
@@ -130,7 +138,7 @@ export async function updateVaccination(
   const db = await getDb();
   await db.runAsync(
     `UPDATE vaccinations
-     SET vaccine_code = ?, vaccine_label = ?, brand = ?, dose_number = ?, date = ?, provider = ?, batch = ?, notes = ?
+     SET vaccine_code = ?, vaccine_label = ?, brand = ?, dose_number = ?, date = ?, provider = ?, batch = ?, notes = ?, saved_with_conflict = ?
      WHERE id = ?`,
     merged.vaccineCode,
     merged.vaccineLabel,
@@ -140,6 +148,7 @@ export async function updateVaccination(
     merged.provider,
     merged.batch,
     merged.notes,
+    merged.savedWithConflict ? 1 : 0,
     id,
   );
 }

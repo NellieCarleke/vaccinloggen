@@ -26,6 +26,8 @@ export interface ExpectedDose {
   key: string;
   code: string;
   doseNumber: number | null;
+  /** Tidigast tillåtet att ta dosen. Saknas när vi inte har spacing-data. */
+  availableFrom?: Date;
   dueDate: Date;
   reason: ReasonKey;
   status: DoseStatus;
@@ -33,8 +35,7 @@ export interface ExpectedDose {
   daysUntilDue: number;
 }
 
-const SOON_DAYS = 60; // <60 dagar till = "soon"
-const OVERDUE_GRACE_DAYS = 14; // tolerera 2 v efter due-date innan rött
+const SOON_DAYS = 60; // <60 dagar till = "soon" (fallback när availableFrom saknas)
 
 /**
  * Compute all expected doses (child program + adult boosters) for a profile.
@@ -92,9 +93,10 @@ export function deriveExpectedDoses(
       key,
       code: adult.code,
       doseNumber: adult.doseNumber,
+      availableFrom: adult.availableFrom,
       dueDate: adult.dueDate,
       reason: adult.reason,
-      ...statusOf(adult.dueDate, today),
+      ...statusOf(adult.dueDate, today, adult.availableFrom),
     });
   }
 
@@ -106,10 +108,21 @@ export function deriveExpectedDoses(
 function statusOf(
   dueDate: Date,
   today: Date,
+  availableFrom?: Date,
 ): { status: DoseStatus; daysUntilDue: number } {
-  const days = dayjs(dueDate).startOf("day").diff(dayjs(today).startOf("day"), "day");
-  if (days < -OVERDUE_GRACE_DAYS) return { status: "overdue", daysUntilDue: days };
+  const todayStart = dayjs(today).startOf("day");
+  const days = dayjs(dueDate).startOf("day").diff(todayStart, "day");
   if (days < 0) return { status: "overdue", daysUntilDue: days };
+  // När vi vet tidigaste tillåtna datum: hela fönstret MIN→MAX räknas som
+  // "soon" (användaren kan ta dosen). Före MIN är det "upcoming". Fallback
+  // utan availableFrom: 60-dagars rolling fönster som tidigare.
+  if (availableFrom) {
+    const daysUntilAvailable = dayjs(availableFrom)
+      .startOf("day")
+      .diff(todayStart, "day");
+    if (daysUntilAvailable <= 0) return { status: "soon", daysUntilDue: days };
+    return { status: "upcoming", daysUntilDue: days };
+  }
   if (days <= SOON_DAYS) return { status: "soon", daysUntilDue: days };
   return { status: "upcoming", daysUntilDue: days };
 }

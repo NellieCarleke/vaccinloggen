@@ -6,13 +6,13 @@ import { Card } from "./Card";
 import { FindClinicButton } from "./FindClinicButton";
 import { Text } from "./Text";
 import { type ExpectedDose, type DoseStatus } from "../reminders/derive";
+import { formatTiming } from "../reminders/doseTiming";
 import { vaccineLabel } from "../schedules/vaccines";
 import { type ReasonKey } from "../schedules/child-program";
 import { findClinicUrlFor } from "../utils/findClinic";
 import { t } from "../i18n/sv";
 import { radii, spacing } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
-import { dayjs, formatDateLong } from "../utils/dates";
 
 interface Props {
   doses: ExpectedDose[];
@@ -63,7 +63,14 @@ function ExpectedRow({
   }
 
   return (
-    <Card onPress={onPress} padded={false} style={styles.row}>
+    <Card
+      onPress={onPress}
+      padded={false}
+      accessibilityLabel={`Registrera ${vaccineLabel(dose.code)}${
+        dose.doseNumber != null ? `, dos ${dose.doseNumber}` : ""
+      }. ${formatTiming(dose)}`}
+      style={styles.row}
+    >
       <View style={[styles.iconWrap, { backgroundColor: bg }]}>
         <Calendar size={18} color={fg} />
       </View>
@@ -79,7 +86,7 @@ function ExpectedRow({
           )}
         </View>
         <Text variant="caption" tone="secondary">
-          {formatRelative(dose.daysUntilDue)} · {formatDateLong(dose.dueDate)}
+          {formatTiming(dose)}
         </Text>
         <Text variant="caption" tone="muted">
           {reasonLabel(dose.reason)}
@@ -103,17 +110,6 @@ function statusColors(
     case "upcoming":
       return { bg: colors.primaryMuted, fg: colors.primaryDeep };
   }
-}
-
-function formatRelative(days: number): string {
-  if (days < -1) return t("expected.overdueDays").replace("{n}", String(-days));
-  if (days === -1) return t("expected.overdueOne");
-  if (days === 0) return t("expected.today");
-  if (days === 1) return t("expected.tomorrow");
-  if (days < 14) return t("expected.inDays").replace("{n}", String(days));
-  if (days < 90)
-    return t("expected.inWeeks").replace("{n}", String(Math.round(days / 7)));
-  return t("expected.inMonths").replace("{n}", String(Math.round(days / 30)));
 }
 
 function reasonLabel(r: ReasonKey): string {

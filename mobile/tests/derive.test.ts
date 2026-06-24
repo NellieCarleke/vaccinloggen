@@ -1,6 +1,11 @@
 import { deriveExpectedDoses } from "../src/reminders/derive";
 import { type Profile } from "../src/db/profiles";
 import { type Vaccination } from "../src/db/vaccinations";
+import { dayjs } from "../src/utils/dates";
+
+function ymd(d: Date): string {
+  return dayjs(d).format("YYYY-MM-DD");
+}
 
 function profile(overrides: Partial<Profile> = {}): Profile {
   return {
@@ -35,6 +40,7 @@ function vac(
     batch: null,
     notes: null,
     source: "manual",
+    savedWithConflict: false,
     createdAt: `${date}T00:00:00Z`,
   };
 }
@@ -244,6 +250,72 @@ describe("deriveExpectedDoses — adult boosters", () => {
     expect(mmr2).toBeDefined();
     expect(mmr2!.status).not.toBe("overdue");
     expect(mmr2!.dueDate.getFullYear()).toBe(2029); // 2022-02 + 90 mån
+  });
+
+  test("TBE: 1 dose med null doseNumber → R2 räknar posten, föreslår dos 2 med spacing", () => {
+    const today = new Date("2024-09-01");
+    const p = profile({ birthdate: "1985-01-01" });
+    // Användaren registrerar dos 22 juni 2024 utan att fylla i dosnummer
+    const recorded = [
+      { ...vac("TBE", 1, "2024-06-22"), doseNumber: null } as Vaccination,
+    ];
+    const out = deriveExpectedDoses(p, recorded, today);
+    const tbe = out.find((d) => d.code === "TBE");
+    expect(tbe).toBeDefined();
+    expect(tbe!.doseNumber).toBe(2);
+    // Spacing dos 1→2 = 30–90 dagar
+    // availableFrom = 2024-06-22 + 30d = 2024-07-22
+    expect(tbe!.availableFrom).toBeDefined();
+    expect(ymd(tbe!.availableFrom!)).toBe("2024-07-22");
+    // dueDate (MAX) = 2024-06-22 + 90d = 2024-09-20
+    expect(ymd(tbe!.dueDate)).toBe("2024-09-20");
+    // Idag 2024-09-01: mellan MIN och MAX → soon
+    expect(tbe!.status).toBe("soon");
+  });
+
+  test("TBE: 1 dose med doseNumber=2 → R2 litar på siffran, föreslår dos 3 med spacing dos 2→3", () => {
+    const today = new Date("2024-09-01");
+    const p = profile({ birthdate: "1985-01-01" });
+    const recorded = [vac("TBE", 2, "2024-06-22")];
+    const out = deriveExpectedDoses(p, recorded, today);
+    const tbe = out.find((d) => d.code === "TBE");
+    expect(tbe).toBeDefined();
+    expect(tbe!.doseNumber).toBe(3);
+    // Spacing dos 2→3 = 150–365 dagar
+    expect(ymd(tbe!.availableFrom!)).toBe("2024-11-19");
+    expect(ymd(tbe!.dueDate)).toBe("2025-06-22");
+    // Idag 2024-09-01: före MIN → upcoming
+    expect(tbe!.status).toBe("upcoming");
+  });
+
+  test("TBE: [null, null, 3] → anyFilled=true, progress=3, serien klar, dos 4 om 3 år", () => {
+    const today = new Date("2025-01-01");
+    const p = profile({ birthdate: "1985-01-01" });
+    const recorded = [
+      { ...vac("TBE", 1, "2024-01-01"), doseNumber: null } as Vaccination,
+      { ...vac("TBE", 1, "2024-02-15"), doseNumber: null } as Vaccination,
+      vac("TBE", 3, "2024-08-01"),
+    ];
+    const out = deriveExpectedDoses(p, recorded, today);
+    const tbe = out.find((d) => d.code === "TBE");
+    expect(tbe).toBeDefined();
+    expect(tbe!.doseNumber).toBe(4);
+    // 2024-08-01 + 36 mån = 2027-08-01
+    expect(tbe!.dueDate.getFullYear()).toBe(2027);
+  });
+
+  test("TBE: enda post med doseNumber=4 (via import) → ingen krasch, lastDose används som ankare", () => {
+    const today = new Date("2026-05-01");
+    const p = profile({ birthdate: "1985-01-01" });
+    const recorded = [vac("TBE", 4, "2024-01-01")];
+    expect(() => deriveExpectedDoses(p, recorded, today)).not.toThrow();
+    const out = deriveExpectedDoses(p, recorded, today);
+    const tbe = out.find((d) => d.code === "TBE");
+    expect(tbe).toBeDefined();
+    expect(tbe!.dueDate.getTime()).not.toBeNaN();
+    // Ankare = lastDose 2024-01-01; dosesAfterSeries = max(0, 4-3) = 1
+    // → offset = customBoosterMonths[1] = 96 mån. 2024-01-01 + 96 mån = 2032-01-01.
+    expect(tbe!.dueDate.getFullYear()).toBe(2032);
   });
 
   test("born 1995, all childhood vaccinations imported → no overdue tetanus booster", () => {

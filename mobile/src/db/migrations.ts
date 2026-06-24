@@ -74,6 +74,15 @@ const MIGRATIONS: { id: string; sql: string }[] = [
       ALTER TABLE profiles ADD COLUMN reminders_enabled INTEGER NOT NULL DEFAULT 1;
     `,
   },
+  {
+    // Diagnostisk flagga: sätts när användaren explicit klickar "Spara ändå"
+    // i konflikt-blockern. Hjälper oss spåra "fel påminnelser"-rapporter
+    // tillbaka till entries som skapades trots gap/duplicering.
+    id: "003_vaccinations_saved_with_conflict",
+    sql: `
+      ALTER TABLE vaccinations ADD COLUMN saved_with_conflict INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 // Migrations run in array order. Newer migrations should be appended.

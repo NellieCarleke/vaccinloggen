@@ -17,6 +17,7 @@ export default function NewVaccination() {
     prefillDose?: string;
   }>();
   const add = useVaccinations((s) => s.add);
+  const allVaccinations = useVaccinations((s) => s.vaccinations);
 
   if (!profileId) {
     return (
@@ -35,6 +36,7 @@ export default function NewVaccination() {
         prefillCode={prefillCode}
         prefillDose={Number.isFinite(dose as number) ? dose : undefined}
         allowAttachments
+        existingVaccinations={allVaccinations}
         onSubmit={async (input, attachments) => {
           const v = await add(input);
           for (const att of attachments) {
