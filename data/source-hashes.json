@@ -3,18 +3,18 @@
     "hash": "3cf4fb6fe042037e2b7c780b4575c57f5fe7e6ed7810642f2f540c0d38bc7f5b",
     "label": "Folkhälsomyndigheten — Vaccinationer (översikt)",
     "url": "https://www.folkhalsomyndigheten.se/smittskydd-beredskap/vaccinationer/",
-    "lastChecked": "2026-09-10T11:55:30.029Z"
+    "lastChecked": "2026-09-11T11:54:25.969Z"
   },
   "rikshandboken-barnvaccin": {
-    "hash": "3ecf247f68135911ad6f07d6784097c8b8e5d690e9c7a44a20cda2669d07b66f",
+    "hash": "d7076cfe3416b280f5e42d57552e1f6dfd8310784d3ad6e90559d8f3dcd2747a",
     "label": "Rikshandboken — Barnvaccinationer",
     "url": "https://www.rikshandboken-bhv.se/halsobesok/vaccinationer/",
-    "lastChecked": "2026-09-10T11:55:32.139Z"
+    "lastChecked": "2026-09-11T11:54:27.932Z"
   },
   "who-yellow-fever": {
     "hash": "132f59af8325ad7b4589bbf95ccc5d586ee35bb3377cf82ed35e0f5cf648cf70",
     "label": "WHO — Yellow Fever (IHR vaccination requirements)",
     "url": "https://www.who.int/health-topics/yellow-fever",
-    "lastChecked": "2026-09-10T11:55:32.342Z"
+    "lastChecked": "2026-09-11T11:54:28.316Z"
   }
 }
